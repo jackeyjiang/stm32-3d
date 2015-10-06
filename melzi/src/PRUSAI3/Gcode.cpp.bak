@@ -1,0 +1,430 @@
+//======================================================================
+#include "m_include.h"
+//======================================================================
+class   GCode   mGode;
+//===========================================================
+//== G代码接收任务 ==
+__task void gCodeTask()   {while (1) mGode.codeLoop();}
+//
+//===========================================================
+// 构造函数
+//===========================================================
+GCode::GCode(void) {
+    this->waitingForResend = -1;
+}
+//
+//==============================================================
+// 根据位标示，解析所需要接收的字节长度
+//==============================================================
+uint8_t GCode::BinarySize(char *ptr) {
+    uint8_t s = 4; 
+    TU_BinaryBitfield bitfield;
+    bitfield.all = *(uint16_t*)ptr;
+    if(bitfield.bits.N_V2_I) s+=2;
+    if(bitfield.bits.X) s+=4;
+    if(bitfield.bits.Y) s+=4;
+    if(bitfield.bits.Z) s+=4;
+    if(bitfield.bits.E) s+=4;
+    if(bitfield.bits.F) s+=4;
+    if(bitfield.bits.T) s+=1;
+    if(bitfield.bits.S) s+=4;
+    if(bitfield.bits.P) s+=4;
+    if(bitfield.bits.V2) {  // Version 2 or later
+        s+=2;               // for bitfield 2
+        uint16_t bitfield2 = *(uint16_t*)(ptr+2);
+        if(bitfield.bits.M_V2_J) s+=2;
+        if(bitfield.bits.G_V2_R) s+=2;
+        if(bitfield2 & 1) s+= 4;
+        if(bitfield2 & 2) s+= 4;
+        if(bitfield2 & 4) s+= 4;
+        if(bitfield.bits.TEXT) s+=(80<((uint8_t)ptr[4]+1))? (80) : ((uint8_t)ptr[4]+1);
+    } else {
+        if(bitfield.bits.M_V2_J) s+=1;
+        if(bitfield.bits.G_V2_R) s+=1;
+        if(bitfield.bits.TEXT)   s+=16;
+    }
+    return s;
+}
+//
+//=================================================================
+// 二进制数据接收解析
+//=================================================================
+bool GCode::parseBinary(uint8_t *buffer,bool fromSerial) {
+    unsigned int sum1=0,sum2=0; // for fletcher-16 checksum   
+    uint8_t *p = buffer;
+    uint8_t len = binaryRxSize-2;
+//
+//----------------------------------------------
+//  1. 判断校验和 
+    while (len) {
+        uint8_t tlen = len > 21 ? 21 : len;
+        len -= tlen;
+        do {
+            sum1 += *p++;
+            if(sum1>=255) sum1-=255;
+            sum2 += sum1;
+            if(sum2>=255) sum2-=255;
+        } while (--tlen);
+    }
+    sum1 -= *p++;
+    sum2 -= *p;
+    if(sum1 | sum2) {
+        mCom.printErrorFLN(tWrongChecksum);
+        return false;
+    }
+//
+//----------------------------------------------
+//  数据拆分解析
+    p = buffer;
+    params.all = *(unsigned int *)p;
+    p+=2;
+    uint8_t textlen=16;
+    if(params.bits.V2) {
+        params2 = *(unsigned int *)p;
+        p+=2;
+        if(params.bits.TEXT) textlen = *p++;
+    } else params2 = 0;
+    if(params.bits.N_V2_I) {
+        actLineNumber=N=*(uint16_t *)p;
+        p+=2;
+    }
+    if(params.bits.V2) {   // Read G,M as 16 bit value
+        if(params.bits.M_V2_J) {M=*(uint16_t *)p;     p+=2;}
+        if(params.bits.G_V2_R) {G=*(uint16_t *)p;     p+=2;}
+    } else {
+        if(params.bits.M_V2_J) {M=*p++;}
+        if(params.bits.G_V2_R) {G=*p++;}
+    }
+    if(params.bits.X)       {X=*(float *)p;   p+=4;}
+    if(params.bits.Y)       {Y=*(float *)p;   p+=4;}
+    if(params.bits.Z)       {Z =*(float *)p;  p+=4;}
+    if(params.bits.E)       {E=*(float *)p;   p+=4;}
+    if(params.bits.F)       {F=*(float *)p;   p+=4;}
+    if(params.bits.T)       {T=*p++;    }
+    if(params.bits.S)       {S=*(int32_t*)p;  p+=4;}
+    if(params.bits.P)       {P=*(int32_t*)p;  p+=4;}
+    if(params.bits.N_V2_I)  {I=*(float *)p; p+=4;}
+    if(params.bits.M_V2_J)  {J=*(float *)p; p+=4;}
+    if(params.bits.G_V2_R)  {R=*(float *)p; p+=4;}
+    if(params.bits.TEXT) {                  // set text pointer to string
+        text = (char*)p;
+        text[textlen] = 0;                  // Terminate string overwriting checksum
+    }
+    formatErrors = 0;
+    return true;
+//
+//----------------------------------------------
+}
+//
+//=================================================================
+// ASCII 数据接收解析
+//=================================================================
+bool GCode::parseAscii(char *line,bool fromSerial)
+{
+    char *pos;
+    
+    params.all = params2 = 0;
+    if((pos = strchr(line,'N'))!=0)  {  // Line number detected
+        actLineNumber = parseLongValue(++pos);
+        params.bits.N_V2_I=1;
+        N = actLineNumber & 0xffff;
+    }
+    if((pos = strchr(line,'M'))!=0) {   // M command
+        M = parseLongValue(++pos) & 0xffff;
+        params.bits.M_V2_J=1;
+        if(M>255) params.bits.V2=1;
+    }
+    if(hasM() && (M == 23 || M == 28 || M == 29 || M == 30 || M == 32 || M == 117)) {
+        // after M command we got a filename for sd card management
+        char *sp = line;
+        while(*sp!='M') sp++; // Search M command
+        while(*sp!=' ') sp++; // search next whitespace
+        while(*sp==' ') sp++; // skip leading whitespaces
+        text = sp;
+        while(*sp) {
+            if(M != 117 && (*sp==' ' || *sp=='*')) break; // end of filename reached
+            sp++;
+        }
+        *sp = 0; // Removes checksum, but we don't care. Could also be part of the string.
+        params.bits.TEXT = 1;
+    } else {
+        if((pos = strchr(line,'G'))!=0) {   // G command
+            G = parseLongValue(++pos) & 0xffff;
+            params.bits.G_V2_R=1;
+            if(G>255) params.bits.V2=1;
+        }
+        if((pos = strchr(line,'X'))!=0) {
+            X = parseFloatValue(++pos);
+            params.bits.X=1;
+        }
+        if((pos = strchr(line,'Y'))!=0) {
+            Y = parseFloatValue(++pos);
+            params.bits.Y=1;
+        }
+        if((pos = strchr(line,'Z'))!=0) {
+            Z = parseFloatValue(++pos);
+            params.bits.Z=1;
+        }
+        if((pos = strchr(line,'E'))!=0) {
+            E = parseFloatValue(++pos);
+            params.bits.E=1;
+        }
+        if((pos = strchr(line,'F'))!=0) {
+            F = parseFloatValue(++pos);
+            params.bits.F=1;
+        }
+        if((pos = strchr(line,'T'))!=0) {  // M command
+            T = parseLongValue(++pos) & 0xff;
+            params.bits.T=1;
+        }
+        if((pos = strchr(line,'S'))!=0) {  // M command
+            S = parseLongValue(++pos);
+            params.bits.S=1;
+        }
+        if((pos = strchr(line,'P'))!=0) {  // M command
+            P = parseLongValue(++pos);
+            params.bits.P=1;
+        }
+        if((pos = strchr(line,'I'))!=0) {
+            I = parseFloatValue(++pos);
+            params2 |= 1;
+            params.bits.N_V2_I=1; // Needs V2 for saving
+        }
+        if((pos = strchr(line,'J'))!=0) {
+            J = parseFloatValue(++pos);
+            params2 |= 2;
+            params.bits.M_V2_J=1; // Needs V2 for saving
+        }
+        if((pos = strchr(line,'R'))!=0) {
+            R = parseFloatValue(++pos);
+            params2 |= 4;
+            params.bits.G_V2_R=1; // Needs V2 for saving
+        }
+    }
+    if((pos = strchr(line,'*'))!=0) {  // checksum
+        uint8_t checksum_given = parseLongValue(pos+1);
+        uint8_t checksum = 0;
+        while(line!=pos) checksum ^= *line++;
+        if(checksum!=checksum_given) {
+            mCom.printErrorFLN(tWrongChecksum);
+            return false; // mismatch
+        }
+    }
+    if(hasFormatError() || (params.all & 518)==0) {   // Must contain G, M or T command and parameter need to have variables!
+        formatErrors++;
+        mCom.printErrorFLN(tFormatError);
+        if(formatErrors<3) return false;
+    }
+    else formatErrors = 0;
+    return true;   
+}
+//===========================================================================
+// 应急停止
+//===========================================================================
+void GCode::emergencyStop()
+{
+// #if defined(KILL_METHOD) && KILL_METHOD==1
+//     HAL::resetHardware();
+// #else
+//     BEGIN_INTERRUPT_PROTECTED
+//     //HAL::forbidInterrupts(); // Don't allow interrupts to do their work
+//     kill(false);
+//     Extruder::manageTemperatures();
+//     for(uint8_t i=0; i<NUM_EXTRUDER+3; i++)
+//         pwm_pos[i] = 0;
+//     pwm_pos[0] = pwm_pos[NUM_EXTRUDER] = pwm_pos[NUM_EXTRUDER+1] = pwm_pos[NUM_EXTRUDER+2]=0;
+// #if EXT0_HEATER_PIN>-1
+//     WRITE(EXT0_HEATER_PIN,0);
+// #endif
+// #if defined(EXT1_HEATER_PIN) && EXT1_HEATER_PIN>-1 && NUM_EXTRUDER>1
+//     WRITE(EXT1_HEATER_PIN,0);
+// #endif
+// #if defined(EXT2_HEATER_PIN) && EXT2_HEATER_PIN>-1 && NUM_EXTRUDER>2
+//     WRITE(EXT2_HEATER_PIN,0);
+// #endif
+// #if defined(EXT3_HEATER_PIN) && EXT3_HEATER_PIN>-1 && NUM_EXTRUDER>3
+//     WRITE(EXT3_HEATER_PIN,0);
+// #endif
+// #if defined(EXT4_HEATER_PIN) && EXT4_HEATER_PIN>-1 && NUM_EXTRUDER>4
+//     WRITE(EXT4_HEATER_PIN,0);
+// #endif
+// #if defined(EXT5_HEATER_PIN) && EXT5_HEATER_PIN>-1 && NUM_EXTRUDER>5
+//     WRITE(EXT5_HEATER_PIN,0);
+// #endif
+// #if FAN_PIN>-1
+//     WRITE(FAN_PIN,0);
+// #endif
+// #if HEATED_BED_HEATER_PIN>-1
+//     WRITE(HEATED_BED_HEATER_PIN,0);
+// #endif
+//     while(1) {}
+//     END_INTERRUPT_PROTECTED
+// #endif
+}
+//==============================================================
+// 判断解析到的数据是否要推入命令堆栈， 如果错误则请求重新发送
+//==============================================================
+void GCode::checkAndPushCommand()
+{
+    //== M 执行 =======
+    if(params.bits.M_V2_J) {
+        if(M==110) {    // Reset line number
+            waitingForResend = -1;
+            lastLineNumber = actLineNumber;
+            mCom.printFLN(tOk);
+            return;
+        }
+        if(M==112) {    // Emergency kill - freeze printer
+            emergencyStop();
+        }
+    }
+    //== N 行号 ========
+    if((((lastLineNumber+1)&0xffff) != (actLineNumber&0xffff)) && hasN()) {
+        if(waitingForResend<0) {    // after a resend, we have to skip the garbage in buffers, no message for this
+            mCom.printF(tExpectedLine, (uint16_t)lastLineNumber+1);
+            mCom.printFLN(tGot,(uint16_t)actLineNumber);
+            requestResend();        // Line missing, force resend
+        } else {
+            RecivingCount = 0;
+            mCom.printFLN(tSkip,(uint16_t)actLineNumber);
+            mCom.printFLN(tOk);
+        }
+        waitingForResend = true;
+        return;
+    }
+    waitingForResend = -1;
+    lastLineNumber = actLineNumber;
+    pushCommand(this);
+    mCom.printFLN(tOkSpace,(uint16_t)actLineNumber);
+    wasLastRxAsBinary = isRxAsBinary;
+
+}
+//===========================================================
+// 发送命令
+//===========================================================
+void GCode::pushCommand(GCode *code)
+{
+    TS_stepMbx *pStepBox;
+    
+    pStepBox = (TS_stepMbx *)_alloc_box(stepPoolMbx);
+    if (pStepBox==NULL) {
+        stepMbxRemain = 0;
+        return;
+    }
+    if (stepMbxRemain) stepMbxRemain--;
+    pStepBox->params  = params.all;
+    pStepBox->params2 = params2;
+    pStepBox->M       = M;
+    pStepBox->N       = N;
+    pStepBox->G       = G;
+    pStepBox->S       = S;
+    pStepBox->P       = P;
+    pStepBox->T       = T;
+    pStepBox->text[0] = 0;
+    pStepBox->X_F1000 = X*1000;
+    pStepBox->Y_F1000 = Y*1000;
+    pStepBox->Z_F1000 = Z*1000;
+    pStepBox->E_F1000 = E*1000;
+    pStepBox->F_F1000 = F*1000;
+    pStepBox->I_F1000 = I*1000;
+    pStepBox->J_F1000 = J*1000;
+    pStepBox->R_F1000 = R*1000;
+    os_mbx_send(stepMbx, pStepBox, 0xffff);   
+}
+//===========================================================
+// 请求数据的重发
+//===========================================================
+void GCode::requestResend(void)
+{
+    
+    RecivingCount=0;
+    mCom.println();
+    mCom.printFLN(tResend, lastLineNumber+1);
+}
+
+//===========================================================
+// GCODE 主循环，判断接收数据 打包发送 class step
+//===========================================================
+void GCode::codeLoop(void)
+{
+    static uint32_t requestTimer = os_time_get();
+    static uint32_t waitTimer = os_time_get();
+    
+    //== 没有数据接收 =================================
+    if (os_sem_wait(serialGcode.semRxReady, 200) == OS_R_TMO) {
+        if (waitingForResend>=0 || RecivingCount>0) {
+            serialGcode.flush();
+            requestResend();
+        } else if ((os_time_get()-waitTimer)>1000) {
+            waitTimer = os_time_get();
+            if (stepMbxRemain==0) {
+                serialGcode.flush();
+                mCom.printFLN(tWait);
+            }  
+        }
+        return;
+    }
+    requestTimer    = os_time_get();
+    waitTimer       = os_time_get();
+    //== 接收到数据 ===================================
+    while (RecivingCount<GCODE_BUFFER_SIZE && serialGcode.available()) {
+        RecivingBuf[RecivingCount++] = serialGcode.read();
+        if (RecivingCount==1) {
+            if (!RecivingBuf[0]) {
+                RecivingCount = 0;
+                continue;
+            }
+            params.all = RecivingBuf[0];
+            isRxAsBinary = params.bits.Binary;
+        }
+        //== 2进制接收 =========
+        if (isRxAsBinary) {
+            if (RecivingCount < 2) {
+                binaryRxSize = 0;
+                continue;
+            }
+            if (RecivingCount==4 || RecivingCount==5) {
+                binaryRxSize=BinarySize((char *)RecivingBuf);
+            }
+            if (RecivingCount==binaryRxSize) {
+                (parseBinary(RecivingBuf, true)) ? (checkAndPushCommand()) : (requestResend());
+                RecivingCount=0;
+                continue;
+            }
+        //== ASCII 接收 =========
+        } else {    // Ascii command
+            char ch = RecivingBuf[RecivingCount-1];
+            if(ch == 0 || ch == '\n' || ch == '\r' || (!commentDetected && ch == ':')) { // complete line read
+                RecivingBuf[RecivingCount-1]=0;
+                commentDetected = false;
+                if(RecivingCount==1) {                  // empty line ignore
+                    RecivingCount = 0;
+                    continue;
+                }
+                //**88**
+                char i=0;
+                while (RecivingBuf[i]) {
+                    serialDebug.write(RecivingBuf[i++]);
+                }
+                serialDebug.write("\r");
+                serialDebug.write("\n");
+
+                if(parseAscii((char *)RecivingBuf,true))   checkAndPushCommand();
+                else                                       requestResend(); 
+                RecivingCount = 0;
+                return;
+            } else {
+                if(ch == ';') commentDetected = true;   // ignore new data until lineend
+                if(commentDetected) RecivingCount--;
+            }
+        }
+        if(RecivingCount == GCODE_BUFFER_SIZE) {
+            requestResend();
+            return;
+        }  
+    }
+}
+//===========================================================
+
+
+

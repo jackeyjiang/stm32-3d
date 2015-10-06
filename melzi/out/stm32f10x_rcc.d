@@ -1,0 +1,10 @@
+.\out\stm32f10x_rcc.o: StLibraries\STM32F10x_StdPeriph_Driver\src\stm32f10x_rcc.c
+.\out\stm32f10x_rcc.o: .\StLibraries\STM32F10x_StdPeriph_Driver\inc\stm32f10x_rcc.h
+.\out\stm32f10x_rcc.o: .\std_maple\stm32f10x.h
+.\out\stm32f10x_rcc.o: C:\Keil\ARM\CMSIS\Include\core_cm3.h
+.\out\stm32f10x_rcc.o: C:\Keil\ARM\ARMCC\bin\..\include\stdint.h
+.\out\stm32f10x_rcc.o: C:\Keil\ARM\CMSIS\Include\core_cmInstr.h
+.\out\stm32f10x_rcc.o: C:\Keil\ARM\CMSIS\Include\core_cmFunc.h
+.\out\stm32f10x_rcc.o: C:\Keil\ARM\Inc\ST\STM32F10x\system_stm32f10x.h
+.\out\stm32f10x_rcc.o: .\std_maple\stdint.h
+.\out\stm32f10x_rcc.o: .\std_maple\typeDefine.h

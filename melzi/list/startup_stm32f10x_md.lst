@@ -1,0 +1,1230 @@
+
+
+
+ARM Macro Assembler    Page 1 
+
+
+    1 00000000         ;******************** (C) COPYRIGHT 2011 STMicroelectron
+                       ics ********************
+    2 00000000         ;* File Name          : startup_stm32f10x_md.s
+    3 00000000         ;* Author             : MCD Application Team
+    4 00000000         ;* Version            : V3.5.0
+    5 00000000         ;* Date               : 11-March-2011
+    6 00000000         ;* Description        : STM32F10x Medium Density Devices
+                        vector table for MDK-ARM 
+    7 00000000         ;*                      toolchain.  
+    8 00000000         ;*                      This module performs:
+    9 00000000         ;*                      - Set the initial SP
+   10 00000000         ;*                      - Set the initial PC == __exc_re
+                       set
+   11 00000000         ;*                      - Set the vector table entries w
+                       ith the exceptions ISR address
+   12 00000000         ;*                      - Configure the clock system
+   13 00000000         ;*                      - Branches to __main in the C li
+                       brary (which eventually
+   14 00000000         ;*                        calls main()).
+   15 00000000         ;*                      After Reset the CortexM3 process
+                       or is in Thread mode,
+   16 00000000         ;*                      priority is Privileged, and the 
+                       Stack is set to Main.
+   17 00000000         ;* <<< Use Configuration Wizard in Context Menu >>>   
+   18 00000000         ;*******************************************************
+                       ************************
+   19 00000000         ; THE PRESENT FIRMWARE WHICH IS FOR GUIDANCE ONLY AIMS A
+                       T PROVIDING CUSTOMERS
+   20 00000000         ; WITH CODING INFORMATION REGARDING THEIR PRODUCTS IN OR
+                       DER FOR THEM TO SAVE TIME.
+   21 00000000         ; AS A RESULT, STMICROELECTRONICS SHALL NOT BE HELD LIAB
+                       LE FOR ANY DIRECT,
+   22 00000000         ; INDIRECT OR CONSEQUENTIAL DAMAGES WITH RESPECT TO ANY 
+                       CLAIMS ARISING FROM THE
+   23 00000000         ; CONTENT OF SUCH FIRMWARE AND/OR THE USE MADE BY CUSTOM
+                       ERS OF THE CODING
+   24 00000000         ; INFORMATION CONTAINED HEREIN IN CONNECTION WITH THEIR 
+                       PRODUCTS.
+   25 00000000         ;*******************************************************
+                       ************************
+   26 00000000         
+   27 00000000         ; Amount of memory (in bytes) allocated for Stack
+   28 00000000         ; Tailor this value to your application needs
+   29 00000000         ; <h> Stack Configuration
+   30 00000000         ;   <o> Stack Size (in Bytes) <0x0-0xFFFFFFFF:8>
+   31 00000000         ; </h>
+   32 00000000         
+   33 00000000 00000800 
+                       Stack_Size
+                               EQU              0x00000800
+   34 00000000         
+   35 00000000                 AREA             STACK, NOINIT, READWRITE, ALIGN
+=3
+   36 00000000         Stack_Mem
+                               SPACE            Stack_Size
+   37 00000800         __initial_sp
+   38 00000800         
+   39 00000800         
+   40 00000800         ; <h> Heap Configuration
+
+
+
+ARM Macro Assembler    Page 2 
+
+
+   41 00000800         ;   <o>  Heap Size (in Bytes) <0x0-0xFFFFFFFF:8>
+   42 00000800         ; </h>
+   43 00000800         
+   44 00000800 00000800 
+                       Heap_Size
+                               EQU              0x00000800
+   45 00000800         
+   46 00000800                 AREA             HEAP, NOINIT, READWRITE, ALIGN=
+3
+   47 00000000         __heap_base
+   48 00000000         Heap_Mem
+                               SPACE            Heap_Size
+   49 00000800         __heap_limit
+   50 00000800         
+   51 00000800                 PRESERVE8
+   52 00000800                 THUMB
+   53 00000800         
+   54 00000800         
+   55 00000800         ; Vector Table Mapped to Address 0 at Reset
+   56 00000800                 AREA             RESET, DATA, READONLY
+   57 00000000                 EXPORT           __Vectors
+   58 00000000                 EXPORT           __Vectors_End
+   59 00000000                 EXPORT           __Vectors_Size
+   60 00000000         
+   61 00000000 00000000 
+                       __Vectors
+                               DCD              __initial_sp ; Top of Stack
+   62 00000004 00000000        DCD              __exc_reset ; Reset Handler
+   63 00000008 00000000        DCD              __exc_nmi   ; NMI Handler
+   64 0000000C 00000000        DCD              __exc_hardfault ; Hard Fault Ha
+                                                            ndler
+   65 00000010 00000000        DCD              __exc_memmanage 
+                                                            ; MPU Fault Handler
+                                                            
+   66 00000014 00000000        DCD              __exc_busfault 
+                                                            ; Bus Fault Handler
+                                                            
+   67 00000018 00000000        DCD              __exc_usagefault ; Usage Fault 
+                                                            Handler
+   68 0000001C 00000000        DCD              __stm32reservedexception7 
+                                                            ; Reserved
+   69 00000020 00000000        DCD              __stm32reservedexception8 
+                                                            ; Reserved
+   70 00000024 00000000        DCD              __stm32reservedexception9 
+                                                            ; Reserved
+   71 00000028 00000000        DCD              __stm32reservedexception10 
+                                                            ; Reserved
+   72 0000002C 00000000        DCD              SVC_Handler ; SVCall Handler
+   73 00000030 00000000        DCD              __exc_debug_monitor ; Debug Mon
+                                                            itor Handler
+   74 00000034 00000000        DCD              __stm32reservedexception13 
+                                                            ; Reserved
+   75 00000038 00000000        DCD              PendSV_Handler ; PendSV Handler
+                                                            
+   76 0000003C 00000000        DCD              SysTick_Handler 
+                                                            ; SysTick Handler
+   77 00000040         
+   78 00000040         ; External Interrupts
+   79 00000040 00000000        DCD              __irq_wwdg  ; Window Watchdog
+
+
+
+ARM Macro Assembler    Page 3 
+
+
+   80 00000044 00000000        DCD              __irq_pvd   ; PVD through EXTI 
+                                                            Line detect
+   81 00000048 00000000        DCD              __irq_tamper ; Tamper
+   82 0000004C 00000000        DCD              __irq_rtc   ; RTC
+   83 00000050 00000000        DCD              __irq_flash ; Flash
+   84 00000054 00000000        DCD              __irq_rcc   ; RCC
+   85 00000058 00000000        DCD              __irq_exti0 ; EXTI Line 0
+   86 0000005C 00000000        DCD              __irq_exti1 ; EXTI Line 1
+   87 00000060 00000000        DCD              __irq_exti2 ; EXTI Line 2
+   88 00000064 00000000        DCD              __irq_exti3 ; EXTI Line 3
+   89 00000068 00000000        DCD              __irq_exti4 ; EXTI Line 4
+   90 0000006C 00000000        DCD              __irq_dma1_channel1 
+                                                            ; DMA1 Channel 1
+   91 00000070 00000000        DCD              __irq_dma1_channel2 
+                                                            ; DMA1 Channel 2
+   92 00000074 00000000        DCD              __irq_dma1_channel3 
+                                                            ; DMA1 Channel 3
+   93 00000078 00000000        DCD              __irq_dma1_channel4 
+                                                            ; DMA1 Channel 4
+   94 0000007C 00000000        DCD              __irq_dma1_channel5 
+                                                            ; DMA1 Channel 5
+   95 00000080 00000000        DCD              __irq_dma1_channel6 
+                                                            ; DMA1 Channel 6
+   96 00000084 00000000        DCD              __irq_dma1_channel7 
+                                                            ; DMA1 Channel 7
+   97 00000088 00000000        DCD              __irq_adc   ; ADC1_2
+   98 0000008C 00000000        DCD              __irq_usb_hp_can_tx ; USB High 
+                                                            Priority or CAN1 TX
+                                                            
+   99 00000090 00000000        DCD              __irq_usb_lp_can_rx0 ; USB Low 
+                                                             Priority or CAN1 R
+                                                            X0
+  100 00000094 00000000        DCD              __irq_can1_rx1 ; CAN1 RX1
+  101 00000098 00000000        DCD              __irq_can1_sce ; CAN1 SCE
+  102 0000009C 00000000        DCD              __irq_exti9_5 ; EXTI Line 9..5
+  103 000000A0 00000000        DCD              __irq_tim1_brk ; TIM1 Break
+  104 000000A4 00000000        DCD              __irq_tim1_up ; TIM1 Update
+  105 000000A8 00000000        DCD              __irq_tim1_trg_com ; TIM1 Trigg
+                                                            er and Commutation
+  106 000000AC 00000000        DCD              __irq_tim1_cc ; TIM1 Capture Co
+                                                            mpare
+  107 000000B0 00000000        DCD              __irq_tim2  ; TIM2
+  108 000000B4 00000000        DCD              __irq_tim3  ; TIM3
+  109 000000B8 00000000        DCD              __irq_tim4  ; TIM4
+  110 000000BC 00000000        DCD              __irq_i2c1_ev ; I2C1 Event
+  111 000000C0 00000000        DCD              __irq_i2c1_er ; I2C1 Error
+  112 000000C4 00000000        DCD              __irq_i2c2_ev ; I2C2 Event
+  113 000000C8 00000000        DCD              __irq_i2c2_er ; I2C2 Error
+  114 000000CC 00000000        DCD              __irq_spi1  ; SPI1
+  115 000000D0 00000000        DCD              __irq_spi2  ; SPI2
+  116 000000D4 00000000        DCD              __irq_usart1 ; USART1
+  117 000000D8 00000000        DCD              __irq_usart2 ; USART2
+  118 000000DC 00000000        DCD              __irq_usart3 ; USART3
+  119 000000E0 00000000        DCD              __irq_exti15_10 
+                                                            ; EXTI Line 15..10
+  120 000000E4 00000000        DCD              __irq_rtc_alarm ; RTC Alarm thr
+                                                            ough EXTI Line
+  121 000000E8 00000000        DCD              __irq_usbwakeup ; USB Wakeup fr
+                                                            om suspend
+
+
+
+ARM Macro Assembler    Page 4 
+
+
+  122 000000EC         
+  123 000000EC         __Vectors_End
+  124 000000EC         
+  125 000000EC 000000EC 
+                       __Vectors_Size
+                               EQU              __Vectors_End - __Vectors
+  126 000000EC         
+  127 000000EC                 AREA             |.text|, CODE, READONLY
+  128 00000000         
+  129 00000000         ; Reset handler
+  130 00000000         __exc_reset
+                               PROC
+  131 00000000                 EXPORT           __exc_reset             [WEAK]
+  132 00000000                 IMPORT           __main
+  133 00000000                 IMPORT           SystemInit
+  134 00000000 480C            LDR              R0, =SystemInit
+  135 00000002 4780            BLX              R0
+  136 00000004 480C            LDR              R0, =__main
+  137 00000006 4700            BX               R0
+  138 00000008                 ENDP
+  139 00000008         
+  140 00000008         ; Dummy Exception Handlers (infinite loops which can be 
+                       modified)
+  141 00000008         
+  142 00000008         __exc_nmi
+                               PROC
+  143 00000008                 EXPORT           __exc_nmi                [WEAK]
+  144 00000008 E7FE            B                .
+  145 0000000A                 ENDP
+  147 0000000A         __exc_hardfault
+                               PROC
+  148 0000000A                 EXPORT           __exc_hardfault          [WEAK]
+  149 0000000A E7FE            B                .
+  150 0000000C                 ENDP
+  152 0000000C         __exc_memmanage
+                               PROC
+  153 0000000C                 EXPORT           __exc_memmanage          [WEAK]
+  154 0000000C E7FE            B                .
+  155 0000000E                 ENDP
+  157 0000000E         __exc_busfault
+                               PROC
+  158 0000000E                 EXPORT           __exc_busfault           [WEAK]
+  159 0000000E E7FE            B                .
+  160 00000010                 ENDP
+  162 00000010         __exc_usagefault
+                               PROC
+  163 00000010                 EXPORT           __exc_usagefault         [WEAK]
+  164 00000010 E7FE            B                .
+  165 00000012                 ENDP
+  167 00000012         __stm32reservedexception7
+                               PROC
+  168 00000012                 EXPORT           __stm32reservedexception7      
+   [WEAK]
+  169 00000012 E7FE            B                .
+  170 00000014                 ENDP
+  172 00000014         __stm32reservedexception8
+                               PROC
+  173 00000014                 EXPORT           __stm32reservedexception8      
+   [WEAK]
+
+
+
+ARM Macro Assembler    Page 5 
+
+
+  174 00000014 E7FE            B                .
+  175 00000016                 ENDP
+  177 00000016         __stm32reservedexception9
+                               PROC
+  178 00000016                 EXPORT           __stm32reservedexception9      
+   [WEAK]
+  179 00000016 E7FE            B                .
+  180 00000018                 ENDP
+  182 00000018         __stm32reservedexception10
+                               PROC
+  183 00000018                 EXPORT           __stm32reservedexception10     
+    [WEAK]
+  184 00000018 E7FE            B                .
+  185 0000001A                 ENDP
+  186 0000001A         SVC_Handler
+                               PROC
+  187 0000001A                 EXPORT           SVC_Handler                  [W
+EAK]
+  188 0000001A E7FE            B                .
+  189 0000001C                 ENDP
+  191 0000001C         __exc_debug_monitor
+                               PROC
+  192 0000001C                 EXPORT           __exc_debug_monitor           [
+WEAK]
+  193 0000001C E7FE            B                .
+  194 0000001E                 ENDP
+  196 0000001E         __stm32reservedexception13
+                               PROC
+  197 0000001E                 EXPORT           __stm32reservedexception13    [
+WEAK]
+  198 0000001E E7FE            B                .
+  199 00000020                 ENDP
+  200 00000020         PendSV_Handler
+                               PROC
+  201 00000020                 EXPORT           PendSV_Handler               [W
+EAK]
+  202 00000020 E7FE            B                .
+  203 00000022                 ENDP
+  204 00000022         SysTick_Handler
+                               PROC
+  205 00000022                 EXPORT           SysTick_Handler            [WEA
+K]
+  206 00000022 E7FE            B                .
+  207 00000024                 ENDP
+  208 00000024         
+  209 00000024         Default_Handler
+                               PROC
+  210 00000024         
+  211 00000024                 EXPORT           __irq_wwdg            [WEAK]
+  212 00000024                 EXPORT           __irq_pvd             [WEAK]
+  213 00000024                 EXPORT           __irq_tamper      [WEAK]
+  214 00000024                 EXPORT           __irq_rtc        [WEAK]
+  215 00000024                 EXPORT           __irq_flash           [WEAK]
+  216 00000024                 EXPORT           __irq_rcc             [WEAK]
+  217 00000024                 EXPORT           __irq_exti0           [WEAK]
+  218 00000024                 EXPORT           __irq_exti1           [WEAK]
+  219 00000024                 EXPORT           __irq_exti2           [WEAK]
+  220 00000024                 EXPORT           __irq_exti3           [WEAK]
+  221 00000024                 EXPORT           __irq_exti4           [WEAK]
+
+
+
+ARM Macro Assembler    Page 6 
+
+
+  222 00000024                 EXPORT           __irq_dma1_channel1    [WEAK]
+  223 00000024                 EXPORT           __irq_dma1_channel2   [WEAK]
+  224 00000024                 EXPORT           __irq_dma1_channel3    [WEAK]
+  225 00000024                 EXPORT           __irq_dma1_channel4    [WEAK]
+  226 00000024                 EXPORT           __irq_dma1_channel5    [WEAK]
+  227 00000024                 EXPORT           __irq_dma1_channel6    [WEAK]
+  228 00000024                 EXPORT           __irq_dma1_channel7    [WEAK]
+  229 00000024                 EXPORT           __irq_adc           [WEAK]
+  230 00000024                 EXPORT           __irq_usb_hp_can_tx    [WEAK]
+  231 00000024                 EXPORT           __irq_usb_lp_can_rx0   [WEAK]
+  232 00000024                 EXPORT           __irq_can1_rx1        [WEAK]
+  233 00000024                 EXPORT           __irq_can1_sce        [WEAK]
+  234 00000024                 EXPORT           __irq_exti9_5         [WEAK]
+  235 00000024                 EXPORT           __irq_tim1_brk         [WEAK]
+  236 00000024                 EXPORT           __irq_tim1_up          [WEAK]
+  237 00000024                 EXPORT           __irq_tim1_trg_com     [WEAK]
+  238 00000024                 EXPORT           __irq_tim1_cc         [WEAK]
+  239 00000024                 EXPORT           __irq_tim2            [WEAK]
+  240 00000024                 EXPORT           __irq_tim3            [WEAK]
+  241 00000024                 EXPORT           __irq_tim4            [WEAK]
+  242 00000024                 EXPORT           __irq_i2c1_ev         [WEAK]
+  243 00000024                 EXPORT           __irq_i2c1_er         [WEAK]
+  244 00000024                 EXPORT           __irq_i2c2_ev          [WEAK]
+  245 00000024                 EXPORT           __irq_i2c2_er          [WEAK]
+  246 00000024                 EXPORT           __irq_spi1             [WEAK]
+  247 00000024                 EXPORT           __irq_spi2             [WEAK]
+  248 00000024                 EXPORT           __irq_usart1           [WEAK]
+  249 00000024                 EXPORT           __irq_usart2           [WEAK]
+  250 00000024                 EXPORT           __irq_usart3           [WEAK]
+  251 00000024                 EXPORT           __irq_exti15_10        [WEAK]
+  252 00000024                 EXPORT           __irq_rtc_alarm        [WEAK]
+  253 00000024                 EXPORT           __irq_usbwakeup [WEAK]
+  254 00000024         
+  255 00000024         __irq_wwdg
+  256 00000024         __irq_pvd
+  257 00000024         __irq_tamper
+  258 00000024         __irq_rtc
+  259 00000024         __irq_flash
+  260 00000024         __irq_rcc
+  261 00000024         __irq_exti0
+  262 00000024         __irq_exti1
+  263 00000024         __irq_exti2
+  264 00000024         __irq_exti3
+  265 00000024         __irq_exti4
+  266 00000024         __irq_dma1_channel1
+  267 00000024         __irq_dma1_channel2
+  268 00000024         __irq_dma1_channel3
+  269 00000024         __irq_dma1_channel4
+  270 00000024         __irq_dma1_channel5
+  271 00000024         __irq_dma1_channel6
+  272 00000024         __irq_dma1_channel7
+  273 00000024         __irq_adc
+  274 00000024         __irq_usb_hp_can_tx
+  275 00000024         __irq_usb_lp_can_rx0
+  276 00000024         __irq_can1_rx1
+  277 00000024         __irq_can1_sce
+  278 00000024         __irq_exti9_5
+  279 00000024         __irq_tim1_brk
+  280 00000024         __irq_tim1_up
+
+
+
+ARM Macro Assembler    Page 7 
+
+
+  281 00000024         __irq_tim1_trg_com
+  282 00000024         __irq_tim1_cc
+  283 00000024         __irq_tim2
+  284 00000024         __irq_tim3
+  285 00000024         __irq_tim4
+  286 00000024         __irq_i2c1_ev
+  287 00000024         __irq_i2c1_er
+  288 00000024         __irq_i2c2_ev
+  289 00000024         __irq_i2c2_er
+  290 00000024         __irq_spi1
+  291 00000024         __irq_spi2
+  292 00000024         __irq_usart1
+  293 00000024         __irq_usart2
+  294 00000024         __irq_usart3
+  295 00000024         __irq_exti15_10
+  296 00000024         __irq_rtc_alarm
+  297 00000024         __irq_usbwakeup
+  298 00000024         
+  299 00000024 E7FE            B                .
+  300 00000026         
+  301 00000026                 ENDP
+  302 00000026         
+  303 00000026 00 00           ALIGN
+  304 00000028         
+  305 00000028         ;*******************************************************
+                       ************************
+  306 00000028         ; User Stack and Heap initialization
+  307 00000028         ;*******************************************************
+                       ************************
+  308 00000028                 IF               :DEF:__MICROLIB
+  315 00000028         
+  316 00000028                 IMPORT           __use_two_region_memory
+  317 00000028                 EXPORT           __user_initial_stackheap
+  318 00000028         
+  319 00000028         __user_initial_stackheap
+  320 00000028         
+  321 00000028 4804            LDR              R0, =  Heap_Mem
+  322 0000002A 4905            LDR              R1, =(Stack_Mem + Stack_Size)
+  323 0000002C 4A05            LDR              R2, = (Heap_Mem +  Heap_Size)
+  324 0000002E 4B06            LDR              R3, = Stack_Mem
+  325 00000030 4770            BX               LR
+  326 00000032         
+  327 00000032 00 00           ALIGN
+  328 00000034         
+  329 00000034                 ENDIF
+  330 00000034         
+  331 00000034                 END
+              00000000 
+              00000000 
+              00000000 
+              00000800 
+              00000800 
+              00000000 
+Command Line: --debug --xref --cpu=Cortex-M3 --apcs=interwork --depend=.\out\st
+artup_stm32f10x_md.d -o.\out\startup_stm32f10x_md.o -IC:\Keil\ARM\RV31\INC -IC:
+\Keil\ARM\CMSIS\Include -IC:\Keil\ARM\Inc\ST\STM32F10x --predefine="__RTX SETA 
+1" --list=.\list\startup_stm32f10x_md.lst ST\startup_stm32f10x_md.s
+
+
+
+ARM Macro Assembler    Page 1 Alphabetic symbol ordering
+Relocatable symbols
+
+STACK 00000000
+
+Symbol: STACK
+   Definitions
+      At line 35 in file ST\startup_stm32f10x_md.s
+   Uses
+      None
+Comment: STACK unused
+Stack_Mem 00000000
+
+Symbol: Stack_Mem
+   Definitions
+      At line 36 in file ST\startup_stm32f10x_md.s
+   Uses
+      At line 322 in file ST\startup_stm32f10x_md.s
+      At line 324 in file ST\startup_stm32f10x_md.s
+
+__initial_sp 00000800
+
+Symbol: __initial_sp
+   Definitions
+      At line 37 in file ST\startup_stm32f10x_md.s
+   Uses
+      At line 61 in file ST\startup_stm32f10x_md.s
+Comment: __initial_sp used once
+3 symbols
+
+
+
+ARM Macro Assembler    Page 1 Alphabetic symbol ordering
+Relocatable symbols
+
+HEAP 00000000
+
+Symbol: HEAP
+   Definitions
+      At line 46 in file ST\startup_stm32f10x_md.s
+   Uses
+      None
+Comment: HEAP unused
+Heap_Mem 00000000
+
+Symbol: Heap_Mem
+   Definitions
+      At line 48 in file ST\startup_stm32f10x_md.s
+   Uses
+      At line 321 in file ST\startup_stm32f10x_md.s
+      At line 323 in file ST\startup_stm32f10x_md.s
+
+__heap_base 00000000
+
+Symbol: __heap_base
+   Definitions
+      At line 47 in file ST\startup_stm32f10x_md.s
+   Uses
+      None
+Comment: __heap_base unused
+__heap_limit 00000800
+
+Symbol: __heap_limit
+   Definitions
+      At line 49 in file ST\startup_stm32f10x_md.s
+   Uses
+      None
+Comment: __heap_limit unused
+4 symbols
+
+
+
+ARM Macro Assembler    Page 1 Alphabetic symbol ordering
+Relocatable symbols
+
+RESET 00000000
+
+Symbol: RESET
+   Definitions
+      At line 56 in file ST\startup_stm32f10x_md.s
+   Uses
+      None
+Comment: RESET unused
+__Vectors 00000000
+
+Symbol: __Vectors
+   Definitions
+      At line 61 in file ST\startup_stm32f10x_md.s
+   Uses
+      At line 57 in file ST\startup_stm32f10x_md.s
+      At line 125 in file ST\startup_stm32f10x_md.s
+
+__Vectors_End 000000EC
+
+Symbol: __Vectors_End
+   Definitions
+      At line 123 in file ST\startup_stm32f10x_md.s
+   Uses
+      At line 58 in file ST\startup_stm32f10x_md.s
+      At line 125 in file ST\startup_stm32f10x_md.s
+
+3 symbols
+
+
+
+ARM Macro Assembler    Page 1 Alphabetic symbol ordering
+Relocatable symbols
+
+.text 00000000
+
+Symbol: .text
+   Definitions
+      At line 127 in file ST\startup_stm32f10x_md.s
+   Uses
+      None
+Comment: .text unused
+Default_Handler 00000024
+
+Symbol: Default_Handler
+   Definitions
+      At line 209 in file ST\startup_stm32f10x_md.s
+   Uses
+      None
+Comment: Default_Handler unused
+PendSV_Handler 00000020
+
+Symbol: PendSV_Handler
+   Definitions
+      At line 200 in file ST\startup_stm32f10x_md.s
+   Uses
+      At line 75 in file ST\startup_stm32f10x_md.s
+      At line 201 in file ST\startup_stm32f10x_md.s
+
+SVC_Handler 0000001A
+
+Symbol: SVC_Handler
+   Definitions
+      At line 186 in file ST\startup_stm32f10x_md.s
+   Uses
+      At line 72 in file ST\startup_stm32f10x_md.s
+      At line 187 in file ST\startup_stm32f10x_md.s
+
+SysTick_Handler 00000022
+
+Symbol: SysTick_Handler
+   Definitions
+      At line 204 in file ST\startup_stm32f10x_md.s
+   Uses
+      At line 76 in file ST\startup_stm32f10x_md.s
+      At line 205 in file ST\startup_stm32f10x_md.s
+
+__exc_busfault 0000000E
+
+Symbol: __exc_busfault
+   Definitions
+      At line 157 in file ST\startup_stm32f10x_md.s
+   Uses
+      At line 66 in file ST\startup_stm32f10x_md.s
+      At line 158 in file ST\startup_stm32f10x_md.s
+
+__exc_debug_monitor 0000001C
+
+Symbol: __exc_debug_monitor
+   Definitions
+      At line 191 in file ST\startup_stm32f10x_md.s
+   Uses
+      At line 73 in file ST\startup_stm32f10x_md.s
+
+
+
+ARM Macro Assembler    Page 2 Alphabetic symbol ordering
+Relocatable symbols
+
+      At line 192 in file ST\startup_stm32f10x_md.s
+
+__exc_hardfault 0000000A
+
+Symbol: __exc_hardfault
+   Definitions
+      At line 147 in file ST\startup_stm32f10x_md.s
+   Uses
+      At line 64 in file ST\startup_stm32f10x_md.s
+      At line 148 in file ST\startup_stm32f10x_md.s
+
+__exc_memmanage 0000000C
+
+Symbol: __exc_memmanage
+   Definitions
+      At line 152 in file ST\startup_stm32f10x_md.s
+   Uses
+      At line 65 in file ST\startup_stm32f10x_md.s
+      At line 153 in file ST\startup_stm32f10x_md.s
+
+__exc_nmi 00000008
+
+Symbol: __exc_nmi
+   Definitions
+      At line 142 in file ST\startup_stm32f10x_md.s
+   Uses
+      At line 63 in file ST\startup_stm32f10x_md.s
+      At line 143 in file ST\startup_stm32f10x_md.s
+
+__exc_reset 00000000
+
+Symbol: __exc_reset
+   Definitions
+      At line 130 in file ST\startup_stm32f10x_md.s
+   Uses
+      At line 62 in file ST\startup_stm32f10x_md.s
+      At line 131 in file ST\startup_stm32f10x_md.s
+
+__exc_usagefault 00000010
+
+Symbol: __exc_usagefault
+   Definitions
+      At line 162 in file ST\startup_stm32f10x_md.s
+   Uses
+      At line 67 in file ST\startup_stm32f10x_md.s
+      At line 163 in file ST\startup_stm32f10x_md.s
+
+__irq_adc 00000024
+
+Symbol: __irq_adc
+   Definitions
+      At line 273 in file ST\startup_stm32f10x_md.s
+   Uses
+      At line 97 in file ST\startup_stm32f10x_md.s
+      At line 229 in file ST\startup_stm32f10x_md.s
+
+__irq_can1_rx1 00000024
+
+Symbol: __irq_can1_rx1
+
+
+
+ARM Macro Assembler    Page 3 Alphabetic symbol ordering
+Relocatable symbols
+
+   Definitions
+      At line 276 in file ST\startup_stm32f10x_md.s
+   Uses
+      At line 100 in file ST\startup_stm32f10x_md.s
+      At line 232 in file ST\startup_stm32f10x_md.s
+
+__irq_can1_sce 00000024
+
+Symbol: __irq_can1_sce
+   Definitions
+      At line 277 in file ST\startup_stm32f10x_md.s
+   Uses
+      At line 101 in file ST\startup_stm32f10x_md.s
+      At line 233 in file ST\startup_stm32f10x_md.s
+
+__irq_dma1_channel1 00000024
+
+Symbol: __irq_dma1_channel1
+   Definitions
+      At line 266 in file ST\startup_stm32f10x_md.s
+   Uses
+      At line 90 in file ST\startup_stm32f10x_md.s
+      At line 222 in file ST\startup_stm32f10x_md.s
+
+__irq_dma1_channel2 00000024
+
+Symbol: __irq_dma1_channel2
+   Definitions
+      At line 267 in file ST\startup_stm32f10x_md.s
+   Uses
+      At line 91 in file ST\startup_stm32f10x_md.s
+      At line 223 in file ST\startup_stm32f10x_md.s
+
+__irq_dma1_channel3 00000024
+
+Symbol: __irq_dma1_channel3
+   Definitions
+      At line 268 in file ST\startup_stm32f10x_md.s
+   Uses
+      At line 92 in file ST\startup_stm32f10x_md.s
+      At line 224 in file ST\startup_stm32f10x_md.s
+
+__irq_dma1_channel4 00000024
+
+Symbol: __irq_dma1_channel4
+   Definitions
+      At line 269 in file ST\startup_stm32f10x_md.s
+   Uses
+      At line 93 in file ST\startup_stm32f10x_md.s
+      At line 225 in file ST\startup_stm32f10x_md.s
+
+__irq_dma1_channel5 00000024
+
+Symbol: __irq_dma1_channel5
+   Definitions
+      At line 270 in file ST\startup_stm32f10x_md.s
+   Uses
+      At line 94 in file ST\startup_stm32f10x_md.s
+      At line 226 in file ST\startup_stm32f10x_md.s
+
+
+
+ARM Macro Assembler    Page 4 Alphabetic symbol ordering
+Relocatable symbols
+
+
+__irq_dma1_channel6 00000024
+
+Symbol: __irq_dma1_channel6
+   Definitions
+      At line 271 in file ST\startup_stm32f10x_md.s
+   Uses
+      At line 95 in file ST\startup_stm32f10x_md.s
+      At line 227 in file ST\startup_stm32f10x_md.s
+
+__irq_dma1_channel7 00000024
+
+Symbol: __irq_dma1_channel7
+   Definitions
+      At line 272 in file ST\startup_stm32f10x_md.s
+   Uses
+      At line 96 in file ST\startup_stm32f10x_md.s
+      At line 228 in file ST\startup_stm32f10x_md.s
+
+__irq_exti0 00000024
+
+Symbol: __irq_exti0
+   Definitions
+      At line 261 in file ST\startup_stm32f10x_md.s
+   Uses
+      At line 85 in file ST\startup_stm32f10x_md.s
+      At line 217 in file ST\startup_stm32f10x_md.s
+
+__irq_exti1 00000024
+
+Symbol: __irq_exti1
+   Definitions
+      At line 262 in file ST\startup_stm32f10x_md.s
+   Uses
+      At line 86 in file ST\startup_stm32f10x_md.s
+      At line 218 in file ST\startup_stm32f10x_md.s
+
+__irq_exti15_10 00000024
+
+Symbol: __irq_exti15_10
+   Definitions
+      At line 295 in file ST\startup_stm32f10x_md.s
+   Uses
+      At line 119 in file ST\startup_stm32f10x_md.s
+      At line 251 in file ST\startup_stm32f10x_md.s
+
+__irq_exti2 00000024
+
+Symbol: __irq_exti2
+   Definitions
+      At line 263 in file ST\startup_stm32f10x_md.s
+   Uses
+      At line 87 in file ST\startup_stm32f10x_md.s
+      At line 219 in file ST\startup_stm32f10x_md.s
+
+__irq_exti3 00000024
+
+Symbol: __irq_exti3
+   Definitions
+
+
+
+ARM Macro Assembler    Page 5 Alphabetic symbol ordering
+Relocatable symbols
+
+      At line 264 in file ST\startup_stm32f10x_md.s
+   Uses
+      At line 88 in file ST\startup_stm32f10x_md.s
+      At line 220 in file ST\startup_stm32f10x_md.s
+
+__irq_exti4 00000024
+
+Symbol: __irq_exti4
+   Definitions
+      At line 265 in file ST\startup_stm32f10x_md.s
+   Uses
+      At line 89 in file ST\startup_stm32f10x_md.s
+      At line 221 in file ST\startup_stm32f10x_md.s
+
+__irq_exti9_5 00000024
+
+Symbol: __irq_exti9_5
+   Definitions
+      At line 278 in file ST\startup_stm32f10x_md.s
+   Uses
+      At line 102 in file ST\startup_stm32f10x_md.s
+      At line 234 in file ST\startup_stm32f10x_md.s
+
+__irq_flash 00000024
+
+Symbol: __irq_flash
+   Definitions
+      At line 259 in file ST\startup_stm32f10x_md.s
+   Uses
+      At line 83 in file ST\startup_stm32f10x_md.s
+      At line 215 in file ST\startup_stm32f10x_md.s
+
+__irq_i2c1_er 00000024
+
+Symbol: __irq_i2c1_er
+   Definitions
+      At line 287 in file ST\startup_stm32f10x_md.s
+   Uses
+      At line 111 in file ST\startup_stm32f10x_md.s
+      At line 243 in file ST\startup_stm32f10x_md.s
+
+__irq_i2c1_ev 00000024
+
+Symbol: __irq_i2c1_ev
+   Definitions
+      At line 286 in file ST\startup_stm32f10x_md.s
+   Uses
+      At line 110 in file ST\startup_stm32f10x_md.s
+      At line 242 in file ST\startup_stm32f10x_md.s
+
+__irq_i2c2_er 00000024
+
+Symbol: __irq_i2c2_er
+   Definitions
+      At line 289 in file ST\startup_stm32f10x_md.s
+   Uses
+      At line 113 in file ST\startup_stm32f10x_md.s
+      At line 245 in file ST\startup_stm32f10x_md.s
+
+
+
+
+ARM Macro Assembler    Page 6 Alphabetic symbol ordering
+Relocatable symbols
+
+__irq_i2c2_ev 00000024
+
+Symbol: __irq_i2c2_ev
+   Definitions
+      At line 288 in file ST\startup_stm32f10x_md.s
+   Uses
+      At line 112 in file ST\startup_stm32f10x_md.s
+      At line 244 in file ST\startup_stm32f10x_md.s
+
+__irq_pvd 00000024
+
+Symbol: __irq_pvd
+   Definitions
+      At line 256 in file ST\startup_stm32f10x_md.s
+   Uses
+      At line 80 in file ST\startup_stm32f10x_md.s
+      At line 212 in file ST\startup_stm32f10x_md.s
+
+__irq_rcc 00000024
+
+Symbol: __irq_rcc
+   Definitions
+      At line 260 in file ST\startup_stm32f10x_md.s
+   Uses
+      At line 84 in file ST\startup_stm32f10x_md.s
+      At line 216 in file ST\startup_stm32f10x_md.s
+
+__irq_rtc 00000024
+
+Symbol: __irq_rtc
+   Definitions
+      At line 258 in file ST\startup_stm32f10x_md.s
+   Uses
+      At line 82 in file ST\startup_stm32f10x_md.s
+      At line 214 in file ST\startup_stm32f10x_md.s
+
+__irq_rtc_alarm 00000024
+
+Symbol: __irq_rtc_alarm
+   Definitions
+      At line 296 in file ST\startup_stm32f10x_md.s
+   Uses
+      At line 120 in file ST\startup_stm32f10x_md.s
+      At line 252 in file ST\startup_stm32f10x_md.s
+
+__irq_spi1 00000024
+
+Symbol: __irq_spi1
+   Definitions
+      At line 290 in file ST\startup_stm32f10x_md.s
+   Uses
+      At line 114 in file ST\startup_stm32f10x_md.s
+      At line 246 in file ST\startup_stm32f10x_md.s
+
+__irq_spi2 00000024
+
+Symbol: __irq_spi2
+   Definitions
+      At line 291 in file ST\startup_stm32f10x_md.s
+
+
+
+ARM Macro Assembler    Page 7 Alphabetic symbol ordering
+Relocatable symbols
+
+   Uses
+      At line 115 in file ST\startup_stm32f10x_md.s
+      At line 247 in file ST\startup_stm32f10x_md.s
+
+__irq_tamper 00000024
+
+Symbol: __irq_tamper
+   Definitions
+      At line 257 in file ST\startup_stm32f10x_md.s
+   Uses
+      At line 81 in file ST\startup_stm32f10x_md.s
+      At line 213 in file ST\startup_stm32f10x_md.s
+
+__irq_tim1_brk 00000024
+
+Symbol: __irq_tim1_brk
+   Definitions
+      At line 279 in file ST\startup_stm32f10x_md.s
+   Uses
+      At line 103 in file ST\startup_stm32f10x_md.s
+      At line 235 in file ST\startup_stm32f10x_md.s
+
+__irq_tim1_cc 00000024
+
+Symbol: __irq_tim1_cc
+   Definitions
+      At line 282 in file ST\startup_stm32f10x_md.s
+   Uses
+      At line 106 in file ST\startup_stm32f10x_md.s
+      At line 238 in file ST\startup_stm32f10x_md.s
+
+__irq_tim1_trg_com 00000024
+
+Symbol: __irq_tim1_trg_com
+   Definitions
+      At line 281 in file ST\startup_stm32f10x_md.s
+   Uses
+      At line 105 in file ST\startup_stm32f10x_md.s
+      At line 237 in file ST\startup_stm32f10x_md.s
+
+__irq_tim1_up 00000024
+
+Symbol: __irq_tim1_up
+   Definitions
+      At line 280 in file ST\startup_stm32f10x_md.s
+   Uses
+      At line 104 in file ST\startup_stm32f10x_md.s
+      At line 236 in file ST\startup_stm32f10x_md.s
+
+__irq_tim2 00000024
+
+Symbol: __irq_tim2
+   Definitions
+      At line 283 in file ST\startup_stm32f10x_md.s
+   Uses
+      At line 107 in file ST\startup_stm32f10x_md.s
+      At line 239 in file ST\startup_stm32f10x_md.s
+
+__irq_tim3 00000024
+
+
+
+ARM Macro Assembler    Page 8 Alphabetic symbol ordering
+Relocatable symbols
+
+
+Symbol: __irq_tim3
+   Definitions
+      At line 284 in file ST\startup_stm32f10x_md.s
+   Uses
+      At line 108 in file ST\startup_stm32f10x_md.s
+      At line 240 in file ST\startup_stm32f10x_md.s
+
+__irq_tim4 00000024
+
+Symbol: __irq_tim4
+   Definitions
+      At line 285 in file ST\startup_stm32f10x_md.s
+   Uses
+      At line 109 in file ST\startup_stm32f10x_md.s
+      At line 241 in file ST\startup_stm32f10x_md.s
+
+__irq_usart1 00000024
+
+Symbol: __irq_usart1
+   Definitions
+      At line 292 in file ST\startup_stm32f10x_md.s
+   Uses
+      At line 116 in file ST\startup_stm32f10x_md.s
+      At line 248 in file ST\startup_stm32f10x_md.s
+
+__irq_usart2 00000024
+
+Symbol: __irq_usart2
+   Definitions
+      At line 293 in file ST\startup_stm32f10x_md.s
+   Uses
+      At line 117 in file ST\startup_stm32f10x_md.s
+      At line 249 in file ST\startup_stm32f10x_md.s
+
+__irq_usart3 00000024
+
+Symbol: __irq_usart3
+   Definitions
+      At line 294 in file ST\startup_stm32f10x_md.s
+   Uses
+      At line 118 in file ST\startup_stm32f10x_md.s
+      At line 250 in file ST\startup_stm32f10x_md.s
+
+__irq_usb_hp_can_tx 00000024
+
+Symbol: __irq_usb_hp_can_tx
+   Definitions
+      At line 274 in file ST\startup_stm32f10x_md.s
+   Uses
+      At line 98 in file ST\startup_stm32f10x_md.s
+      At line 230 in file ST\startup_stm32f10x_md.s
+
+__irq_usb_lp_can_rx0 00000024
+
+Symbol: __irq_usb_lp_can_rx0
+   Definitions
+      At line 275 in file ST\startup_stm32f10x_md.s
+   Uses
+
+
+
+ARM Macro Assembler    Page 9 Alphabetic symbol ordering
+Relocatable symbols
+
+      At line 99 in file ST\startup_stm32f10x_md.s
+      At line 231 in file ST\startup_stm32f10x_md.s
+
+__irq_usbwakeup 00000024
+
+Symbol: __irq_usbwakeup
+   Definitions
+      At line 297 in file ST\startup_stm32f10x_md.s
+   Uses
+      At line 121 in file ST\startup_stm32f10x_md.s
+      At line 253 in file ST\startup_stm32f10x_md.s
+
+__irq_wwdg 00000024
+
+Symbol: __irq_wwdg
+   Definitions
+      At line 255 in file ST\startup_stm32f10x_md.s
+   Uses
+      At line 79 in file ST\startup_stm32f10x_md.s
+      At line 211 in file ST\startup_stm32f10x_md.s
+
+__stm32reservedexception10 00000018
+
+Symbol: __stm32reservedexception10
+   Definitions
+      At line 182 in file ST\startup_stm32f10x_md.s
+   Uses
+      At line 71 in file ST\startup_stm32f10x_md.s
+      At line 183 in file ST\startup_stm32f10x_md.s
+
+__stm32reservedexception13 0000001E
+
+Symbol: __stm32reservedexception13
+   Definitions
+      At line 196 in file ST\startup_stm32f10x_md.s
+   Uses
+      At line 74 in file ST\startup_stm32f10x_md.s
+      At line 197 in file ST\startup_stm32f10x_md.s
+
+__stm32reservedexception7 00000012
+
+Symbol: __stm32reservedexception7
+   Definitions
+      At line 167 in file ST\startup_stm32f10x_md.s
+   Uses
+      At line 68 in file ST\startup_stm32f10x_md.s
+      At line 168 in file ST\startup_stm32f10x_md.s
+
+__stm32reservedexception8 00000014
+
+Symbol: __stm32reservedexception8
+   Definitions
+      At line 172 in file ST\startup_stm32f10x_md.s
+   Uses
+      At line 69 in file ST\startup_stm32f10x_md.s
+      At line 173 in file ST\startup_stm32f10x_md.s
+
+__stm32reservedexception9 00000016
+
+
+
+
+ARM Macro Assembler    Page 10 Alphabetic symbol ordering
+Relocatable symbols
+
+Symbol: __stm32reservedexception9
+   Definitions
+      At line 177 in file ST\startup_stm32f10x_md.s
+   Uses
+      At line 70 in file ST\startup_stm32f10x_md.s
+      At line 178 in file ST\startup_stm32f10x_md.s
+
+__user_initial_stackheap 00000028
+
+Symbol: __user_initial_stackheap
+   Definitions
+      At line 319 in file ST\startup_stm32f10x_md.s
+   Uses
+      At line 317 in file ST\startup_stm32f10x_md.s
+Comment: __user_initial_stackheap used once
+61 symbols
+
+
+
+ARM Macro Assembler    Page 1 Alphabetic symbol ordering
+Absolute symbols
+
+Heap_Size 00000800
+
+Symbol: Heap_Size
+   Definitions
+      At line 44 in file ST\startup_stm32f10x_md.s
+   Uses
+      At line 48 in file ST\startup_stm32f10x_md.s
+      At line 323 in file ST\startup_stm32f10x_md.s
+
+Stack_Size 00000800
+
+Symbol: Stack_Size
+   Definitions
+      At line 33 in file ST\startup_stm32f10x_md.s
+   Uses
+      At line 36 in file ST\startup_stm32f10x_md.s
+      At line 322 in file ST\startup_stm32f10x_md.s
+
+__Vectors_Size 000000EC
+
+Symbol: __Vectors_Size
+   Definitions
+      At line 125 in file ST\startup_stm32f10x_md.s
+   Uses
+      At line 59 in file ST\startup_stm32f10x_md.s
+Comment: __Vectors_Size used once
+3 symbols
+
+
+
+ARM Macro Assembler    Page 1 Alphabetic symbol ordering
+External symbols
+
+SystemInit 00000000
+
+Symbol: SystemInit
+   Definitions
+      At line 133 in file ST\startup_stm32f10x_md.s
+   Uses
+      At line 134 in file ST\startup_stm32f10x_md.s
+Comment: SystemInit used once
+__main 00000000
+
+Symbol: __main
+   Definitions
+      At line 132 in file ST\startup_stm32f10x_md.s
+   Uses
+      At line 136 in file ST\startup_stm32f10x_md.s
+Comment: __main used once
+__use_two_region_memory 00000000
+
+Symbol: __use_two_region_memory
+   Definitions
+      At line 316 in file ST\startup_stm32f10x_md.s
+   Uses
+      None
+Comment: __use_two_region_memory unused
+3 symbols
+412 symbols in table
