@@ -1,5 +1,0 @@
---cpp -c --cpu Cortex-M3 -D__RTX -g -O0 --apcs=interwork -I.\inc -I.\src -I.\usb -I.\lib\U8glib -I.\std_maple -I.\src\PRUSAI3 -I.\StLibraries\fatfs\src -I.\StLibraries\STM32F10x_StdPeriph_Driver\inc -I.\StLibraries\STM32_USB-FS-Device_Driver\inc --gnu 
--I C:\Keil\ARM\RV31\INC 
--I C:\Keil\ARM\CMSIS\Include 
--I C:\Keil\ARM\Inc\ST\STM32F10x 
--DSTM32F10X_HD -DSTM32_HIGH_DENSITY -DSE_STDPERIPH_DRIVER -o ".\out\m_mapleinit.o" --omf_browse ".\out\m_mapleinit.crf" --depend ".\out\m_mapleinit.d" "std_maple\m_mapleInit.cpp"
